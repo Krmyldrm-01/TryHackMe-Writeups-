@@ -2,9 +2,13 @@
 
 Merhaba! 👋 Ben Kerem Yıldırım.
 
-Siber güvenlik meraklısı ve sızma testleri alanında kendini geliştiren bir öğrenciyim. Özellikle Active Directory güvenliği ve Windows ortamlarındaki zafiyetleri araştırmaktan keyif alıyorum.
+Siber güvenlik meraklısı ve sızma testleri alanında kendini geliştiren bir öğrenciyim. Sistem ve ağ altyapılarındaki zafiyetleri tespit etme ve sömürme teknikleri üzerine çalışıyorum.
 
-Bu repo, [TryHackMe](https://tryhackme.com/) platformunda çözdüğüm odaların detaylı ve profesyonel standartlarda hazırlanmış çözüm adımlarını (write-up'larını) içermektedir. Amacım, öğrendiğim teknikleri belgeleyerek kalıcı hale getirmek ve siber güvenlik topluluğuna bir katkı sağlamaktır.
+Bu GitHub profili, siber güvenlik yolculuğumdaki teknik notlarımı ve pratik çalışmalarımı belgelediğim bir portfolyodur. Burada, TryHackMe gibi platformlarda çözdüğüm odaların detaylı çözüm adımlarını (write-up'larını) bulabilirsiniz.
+
+Amacım, öğrendiğim her yeni tekniği uygulayarak yeteneklerimi pekiştirmek ve siber güvenlik alanında bir kariyere hazırlanmaktır.
+
+🔗 LinkedIn: linkedin.com/in/kerem-yıldırım-5a9181200
 
 ---
 
