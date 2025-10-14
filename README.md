@@ -11,8 +11,6 @@ Bu repo, [TryHackMe](https://tryhackme.com/) platformunda çözdüğüm odaları
 ### 🔗 Profil Linklerim
 
 * **LinkedIn:** [Kerem Yıldırım](https://www.linkedin.com/in/kerem-y%C4%B1ld%C4%B1r%C4%B1m-5a9181200/)
-
-
 ---
 
 
