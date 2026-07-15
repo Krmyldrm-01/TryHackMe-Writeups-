@@ -1,8 +1,8 @@
 
 
-# 🎯 CTF Write-Up: [Oda Adı] (Premium)
+# 🎯 CTF Write-Up: Checkmate (Premium)
 
-Bu repo, [Oda Adı] adlı premium CTF makinesinin çözüm adımlarını içermektedir. Çözüm sürecinde standart araçların ötesine geçilmiş; hedef odaklı kelime listesi oluşturma (CUPP), web kazıma (OSINT), Bash scripting ile hash kırma ve Python ile spesifik parola deseni (pattern) üretimi gibi ileri seviye sızma testi teknikleri kullanılmıştır. 
+Bu repo, Checkmate adlı premium CTF makinesinin çözüm adımlarını içermektedir. Çözüm sürecinde standart araçların ötesine geçilmiş; hedef odaklı kelime listesi oluşturma (CUPP), web kazıma (OSINT), Bash scripting ile hash kırma ve Python ile spesifik parola deseni (pattern) üretimi gibi ileri seviye sızma testi teknikleri kullanılmıştır. 
 
 *(Not: Hedef premium bir oda olduğu için kurallar gereği tespit edilen parolalar ve bayraklar `[REDACTED]` şeklinde gizlenmiştir.)*
 
