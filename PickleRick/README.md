@@ -240,7 +240,7 @@ cat 3rd.txt
 
 Root yetkisi elde edildi ve Rick'in pickle formülü için gereken üç malzemenin tamamı bulundu:
 
-1. `Sup3rS3cretPickl3Ingred.txt` içeriği
+1. `mr. meeseek hair` 
 2. `1 jerry tear`
 3. `fleeb juice`
 
