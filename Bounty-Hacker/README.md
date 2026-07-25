@@ -1,4 +1,4 @@
-# TryHackMe - Cowboy Hack Write-Up
+# TryHackMe - Bounty Hacker Write-Up
 
 Bu write-up'ta TryHackMe odasında gerçekleştirilen keşif (enumeration), ilk erişim (initial access) ve yetki yükseltme (privilege escalation) adımlarını inceleyeceğiz.
 a
