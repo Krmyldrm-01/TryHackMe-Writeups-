@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="images/wonderland.png" width="850">
-</p>
+
 
 # Wonderland - TryHackMe Write-Up
 
