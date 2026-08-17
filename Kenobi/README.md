@@ -361,5 +361,3 @@ Nmap
 - User flag: `/home/kenobi/user.txt` (odanın içinde bulunur)
 - Root flag: `/root/root.txt`
 ```
-
----
