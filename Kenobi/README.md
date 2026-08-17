@@ -3,33 +3,6 @@
 ```markdown
 # TryHackMe – Kenobi Write-up (Türkçe)
 
-Bu write‑up, **Kenobi** odasının adım adım çözümünü, karşılaşılan sorunları ve her aşamanın **neden** yapıldığını açıklayarak sunar.
-
----
-
-## 📌 İçindekiler
-
-1. [Keşif (Enumeration)](#1-keşif-enumeration)
-   - [Nmap Taraması](#11-nmap-ile-açık-portların-taranması)
-   - [SMB – Bilgi Sızdırma](#12-smb--bilgi-sızdırma)
-   - [FTP – Versiyon ve Exploit](#13-ftp--versiyon-tespiti-ve-exploit-arama)
-   - [NFS – Paylaşımları Keşfetme](#14-nfs--paylaşılan-dizinleri-keşfetme)
-2. [İlk Erişim (Initial Access)](#2-ilk-erişim-initial-access)
-   - [mod_copy ile SSH Key Kopyalama](#21-proftpd-mod_copy-ile-ssh-keyi-kopyalama)
-   - [NFS Mount ve Key’i Alma](#22-nfs-ile-var-dizininin-mount-edilmesi)
-   - [SSH ile Kenobi’ye Giriş](#23-ssh-ile-kenobi-kullanıcısına-giriş)
-3. [Yetki Yükseltme (Privilege Escalation)](#3-yetki-yükseltme-privilege-escalation)
-   - [SUID Dosyalarını Bulma](#31-suid-bitine-sahip-dosyaları-bulma)
-   - [Binary İnceleme – strings](#32-binaryi-inceleme--strings)
-   - [PATH Hijacking ile Root Shell](#33-path-hijacking-ile-root-shell)
-   - [Root Flag](#34-root-flagi-okuma)
-4. [Karşılaşılan Sorunlar ve Çözümleri](#4-karşılaşılan-sorunlar-ve-çözümleri)
-5. [Saldırı Zinciri Özeti](#5-saldırı-zinciri-özeti)
-6. [Kullanılan Araçlar](#6-kullanılan-araçlar-tools-used)
-7. [Sonuç](#7-sonuç)
-
----
-
 ## 1. Keşif (Enumeration)
 
 ### 1.1 Nmap ile Açık Portların Taranması
@@ -385,13 +358,6 @@ Nmap
 
 ---
 
-## 7. Sonuç
-
-Bu oda, **bilgi sızdıran servislerin** (SMB, FTP, NFS) nasıl birleştirilerek kritik dosyalara erişilebileceğini ve **SUID + PATH hijacking** ile root olunabileceğini gösteriyor.  
-Her adımda elde edilen küçük ipuçları, bir sonraki aşamanın kapısını açıyor. Unutmayın: **enumeration** her şeyin başlangıcıdır.
-
----
-
 **Flags:**
 
 - User flag: `/home/kenobi/user.txt` (odanın içinde bulunur)
@@ -399,5 +365,3 @@ Her adımda elde edilen küçük ipuçları, bir sonraki aşamanın kapısını 
 ```
 
 ---
-
-Bu içeriği bir metin dosyasına kopyalayıp `kenobi-writeup.md` olarak kaydedebilirsin. İstersen başlıkları, kod bloklarını ve tabloları dilediğin gibi düzenleyebilirsin.
