@@ -1,6 +1,4 @@
----
 
-```markdown
 # TryHackMe – Kenobi Write-up (Türkçe)
 
 ## 1. Keşif (Enumeration)
